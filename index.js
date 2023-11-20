@@ -64,7 +64,7 @@ app.post('/api/submit-revision', async (req, res) => {
         "messages": [
           {
             "role": "system",
-            "content": "Analyze the revised resume text, original resume text, and job description. Integrate the revised resume text and the original resume under the heading 'Final Resume:' Ensure that the final document is truthful, accurately reflects the candidate's skills and experiences, is free of irrelevant content for brevity, and utilizes as many of the job description's keywords as possible. Add specific numbers achieved by actions taken where applicable and relevant. Arrange the content with appropriate sections and spacing for a professional appearance.\n\nUnder the heading 'EScore:', provide a precise score out of 100, acknowledging that a perfect score is unlikely. If specific credentials are required for the job and not present in the resume, the score must reflect this with a value of 50 or appropriate.\n\nUnder the heading 'Cover Letter:', craft a clear, concise, and compelling cover letter that utilizes keywords from the job description and draws on relevant examples from the revised resume. Focus on creating a narrative that showcases the candidate’s suitability for the position without exaggeration. Include the user's letter heading for a personalized touch. Return the cover letter in basic text format, focusing on content rather than design.",
+            "content": "Analyze the revised resume text, original resume text, and the job description. Then, create a 'Final Resume:' that blends the highlights from both the revised and original resumes. This final draft should be honest, succinct, and truly reflect the candidate's skills and experiences, while strategically embedding relevant keywords from the job description. Include specific, quantifiable achievements to showcase the candidate's impact. Opt for a layout that's both professional and infused with a human touch, adding variability in its structure. Next, for the 'EScore:', assign a score out of 100. Remember, perfection is rare. If key qualifications for the job are absent in the resume, adjust the score starting from 50 or as appropriate. Present the EScore simply, with the heading and score on the same line, sans extra details. In crafting the 'Cover Letter:', weave an engaging, personal narrative that heavily incorporates keywords from the job description, alongside the best elements of the revised resume. The letter should be clear, convincing, and underscore the candidate's fit for the role. Follow these guidelines for each paragraph: aim for at least 5 sentences, beginning with a key thematic sentence. Include a blend of 2 simple, 2 complex, and 1 compound sentence, varying the lengths for added interest. Use GRE-level vocabulary for college graduates, and simpler language with occasional GRE words for those without a college background. Employ a mix of verb tenses - simple, progressive, perfect, perfect progressive - to depict the full spectrum of an adult’s experiences. Finalize the cover letter in a basic text format, emphasizing authenticity and a personal touch, while ensuring maximum keyword integration for ATS compatibility.",
           },
           {
             "role": "user",
@@ -79,7 +79,7 @@ app.post('/api/submit-revision', async (req, res) => {
             "content": revisions,
           }
         ],
-        "temperature": 0.4,
+        "temperature": 0.7,
         "max_tokens": 2000,
         "top_p": 1,
         "frequency_penalty": 0,
