@@ -11,6 +11,25 @@ const openAI = new OpenAI({
 
 app.use(cors());
 app.use(express.json());
+// Endpoint for Google Job Search
+app.get('/api/search-jobs', async (req, res) => {
+  const { query } = req.query;
+
+  try {
+      const response = await axios.get('https://api.serpapi.com/search', {
+          params: {
+              engine: "google_jobs",
+              q: query,
+              api_key: process.env.SERP_API_KEY // Ensure you have this in your .env file
+          }
+      });
+
+      res.json(response.data);
+  } catch (error) {
+      console.error('Error with Google Job Search API:', error);
+      res.status(500).json({ error: error.message });
+  }
+});
 app.post('/api/analyze-resume', async (req, res) => {
     const { resumeText, jobDescriptionText } = req.body;
 
