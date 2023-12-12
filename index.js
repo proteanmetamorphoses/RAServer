@@ -122,6 +122,54 @@ app.post("/api/submit-revision", async (req, res) => {
   }
 });
 
+app.post("/api/interview-assessment", async (req, res) => {
+  try {
+    const { qaPairs } = req.body;
+    console.log("qaPairs sent to OpenAI: ", qaPairs);
+    // Process qaPairs and format them as needed for OpenAI
+    const formattedInput = formatInputForOpenAI(qaPairs);
+    console.log("Formatted Input: ", formattedInput);
+    const response = await openAI.chat.completions.create({
+      model: "gpt-4-1106-preview",
+      messages: [
+        {
+          role: "system",
+          content:
+            "Analyze each of the following interview question responses in the included data from a hiring manager's perspective.  There are several parts to consider: the actual answers, the charRatio, the question, the spokenChars, the submissionCount, the timeTaken, and the typedChars.  Provide an analysis of the response focusing on clarity, relevance to the question, and user response word count aiming for about 120 words or more.  Confidence is measured by the intersection of the length of the answer, the submissionCount, the timeTaken, and the charRatio (lower is better on all counts) for each question. For charRatio, less than 1 means mostly spoken.  More than 1 means mostly typed.  Users should aim for mostly spoken (very low charRatio value i.e.: 0.1) for full confidence.  Then, give a score from 1 (low) to 100 (High) on the user's capacity to answer the question based on the analysis of the answers and the confidence. The score should reflect how well the user meets the criteria in their response but should refer only to the answer and not the measures (the submissionCount, the timeTaken, and the charRatio).  If the confidence measures appear low, say something like, `confidence for this question appears low`and something appropriate for other middle and higher values of confidence (high confidence is best). The answer must be returned in the following format: '\nQuestion [Question Number]:\n[Insert Question Here]\nUser Response to question:\n[User's answers to question]\nSubmissions:\n[User's response submissionCount for question]\nResponse Time:\n[User's timeTaken for question]\ncharRatio:\n[User's charRatio for question]\nResponse Analysis:\n[OpenAI Response]\nScore:\n[Assessed Score for the question]'.",
+        },
+        {
+          role: "user",
+          content: formattedInput,
+        },
+      ],
+      temperature: 0.4,
+      max_tokens: 2000,
+      top_p: 1,
+      frequency_penalty: 0,
+      presence_penalty: 0,
+    });
+
+    console.log(
+      "OpenAI interview analysis content:",
+      response.choices[0].message
+    );
+    const messageContent = response.choices[0].message.content;
+    // Send the message content back to the client
+    res.json({ message: messageContent });
+  } catch (error) {
+    console.error("Error with OpenAI API:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+function formatInputForOpenAI(qaPairs) {
+  return qaPairs.map((pair, index) => {
+    // Format each question-answer pair with all relevant data
+    return `Question ${index + 1}:\n${pair.question}\nUser Response to question:\n${pair.answers.join(" ")}\nSubmissions:\n${pair.submissionCount}\nResponse Time:\n${pair.timeTaken}\ncharRatio:\n${pair.charRatio}`;
+  }).join("\n\n");
+}
+
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
