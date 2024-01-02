@@ -4,7 +4,7 @@ const { OpenAI } = require("openai"); // Adjusted for potential ES6 import
 const cors = require("cors");
 const axios = require("axios");
 const app = express();
-const nodemailer = require('nodemailer');
+const nodemailer = require("nodemailer");
 
 // Initialize the OpenAI API configuration
 const openAI = new OpenAI({
@@ -14,22 +14,21 @@ const openAI = new OpenAI({
 app.use(cors());
 app.use(express.json());
 
-app.post('/api/send-email', async (req, res) => {
+app.post("/api/send-email", async (req, res) => {
   let { name, email, message } = req.body;
-
   // Set up Nodemailer transport
   const transporter = nodemailer.createTransport({
-    service: 'YourEmailService', // e.g., 'gmail', 'outlook'
+    service: "gmail", // e.g., 'gmail', 'outlook'
     auth: {
-      user: 'steve.kurowski@fluentenglish.ca',
-      pass: 'S1lverch4ir', // It's safer to use environment variables for credentials
+      user: process.env.userEmail,
+      pass: process.env.userPass, // It's safer to use environment variables for credentials
     },
   });
 
   // Email options
   const mailOptions = {
     from: email,
-    to: 'info@fluentenglish.ca',
+    to: "info@fluentenglish.ca",
     subject: `New contact from ${name}`,
     text: message,
   };
@@ -37,13 +36,12 @@ app.post('/api/send-email', async (req, res) => {
   // Send the email
   try {
     await transporter.sendMail(mailOptions);
-    res.status(200).json({ message: 'Email sent successfully' });
+    res.status(200).json({ message: "Email sent successfully" });
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error("Error sending email:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
 
 // Endpoint for Google Job Search
 app.get("/api/search-jobs", async (req, res) => {
@@ -196,12 +194,17 @@ app.post("/api/interview-assessment", async (req, res) => {
 });
 
 function formatInputForOpenAI(qaPairs) {
-  return qaPairs.map((pair, index) => {
-    // Format each question-answer pair with all relevant data
-    return `Question ${index + 1}:\n${pair.question}\nUser Response to question:\n${pair.answers.join(" ")}\nSubmissions:\n${pair.submissionCount}\nResponse Time:\n${pair.timeTaken}\ncharRatio:\n${pair.charRatio}`;
-  }).join("\n\n");
+  return qaPairs
+    .map((pair, index) => {
+      // Format each question-answer pair with all relevant data
+      return `Question ${index + 1}:\n${
+        pair.question
+      }\nUser Response to question:\n${pair.answers.join(" ")}\nSubmissions:\n${
+        pair.submissionCount
+      }\nResponse Time:\n${pair.timeTaken}\ncharRatio:\n${pair.charRatio}`;
+    })
+    .join("\n\n");
 }
-
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
