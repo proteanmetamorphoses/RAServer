@@ -28,7 +28,7 @@ app.post("/api/send-email", async (req, res) => {
   // Email options
   const mailOptions = {
     from: email,
-    to: "info@fluentenglish.ca",
+    to: process.env.toWhichUser,
     subject: `New contact from ${name}`,
     text: message,
   };
