@@ -18,10 +18,10 @@ app.post("/api/send-email", async (req, res) => {
   let { name, email, message } = req.body;
   // Set up Nodemailer transport
   const transporter = nodemailer.createTransport({
-    service: "gmail", // e.g., 'gmail', 'outlook'
+    service: SrVc, 
     auth: {
       user: process.env.userEmail,
-      pass: process.env.userPass, // It's safer to use environment variables for credentials
+      pass: process.env.userPass, 
     },
   });
 
