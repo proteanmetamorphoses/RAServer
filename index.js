@@ -4,6 +4,7 @@ const { OpenAI } = require("openai"); // Adjusted for potential ES6 import
 const cors = require("cors");
 const axios = require("axios");
 const app = express();
+const nodemailer = require('nodemailer');
 
 // Initialize the OpenAI API configuration
 const openAI = new OpenAI({
@@ -12,6 +13,38 @@ const openAI = new OpenAI({
 
 app.use(cors());
 app.use(express.json());
+
+app.post('/api/send-email', async (req, res) => {
+  let { name, email, message } = req.body;
+
+  // Set up Nodemailer transport
+  const transporter = nodemailer.createTransport({
+    service: 'YourEmailService', // e.g., 'gmail', 'outlook'
+    auth: {
+      user: 'steve.kurowski@fluentenglish.ca',
+      pass: 'S1lverch4ir', // It's safer to use environment variables for credentials
+    },
+  });
+
+  // Email options
+  const mailOptions = {
+    from: email,
+    to: 'info@fluentenglish.ca',
+    subject: `New contact from ${name}`,
+    text: message,
+  };
+
+  // Send the email
+  try {
+    await transporter.sendMail(mailOptions);
+    res.status(200).json({ message: 'Email sent successfully' });
+  } catch (error) {
+    console.error('Error sending email:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 // Endpoint for Google Job Search
 app.get("/api/search-jobs", async (req, res) => {
   const { query } = req.query;
@@ -104,7 +137,7 @@ app.post("/api/submit-revision", async (req, res) => {
           content: revisions,
         },
       ],
-      temperature: 0.4,
+      temperature: 0.3,
       max_tokens: 2000,
       top_p: 1,
       frequency_penalty: 0,
@@ -135,7 +168,7 @@ app.post("/api/interview-assessment", async (req, res) => {
         {
           role: "system",
           content:
-            "Analyze each of the following interview question responses in the included data from a hiring manager's perspective.  There are several parts to consider: the actual answers, the charRatio, the question, the spokenChars, the submissionCount, the timeTaken, and the typedChars.  Provide an analysis of the response focusing on clarity, relevance to the question, and user response word count aiming for about 120 words or more.  Confidence is measured by the intersection of the length of the answer, the submissionCount, the timeTaken, and the charRatio (lower is better on all counts) for each question. For charRatio, less than 1 means mostly spoken.  More than 1 means mostly typed.  Users should aim for mostly spoken (very low charRatio value i.e.: 0.1) for full confidence.  Then, give a score from 1 (low) to 100 (High) on the user's capacity to answer the question based on the analysis of the answers and the confidence. The score should reflect how well the user meets the criteria in their response but should refer only to the answer and not the measures (the submissionCount, the timeTaken, and the charRatio).  If the confidence measures appear low, say something like, `confidence for this question appears low`and something appropriate for other middle and higher values of confidence (high confidence is best). The answer must be returned in the following format: '\nQuestion [Question Number]:\n[Insert Question Here]\nUser Response to question:\n[User's answers to question]\nSubmissions:\n[User's response submissionCount for question]\nResponse Time:\n[User's timeTaken for question]\ncharRatio:\n[User's charRatio for question]\nResponse Analysis:\n[OpenAI Response]\nScore:\n[Assessed Score for the question]'.",
+            "Analyze each of the following interview question responses in the included data from a hiring manager's perspective.  There are several parts to consider: the actual answers, the charRatio, the question, the spokenChars, the submissionCount, the timeTaken, and the typedChars.  Provide an analysis of the response focusing on clarity, relevance to the question, and user response word count aiming for about 120 words.  Confidence is measured by [[[the intersection of the length and clarity of the answer delivered over a reasonable time interval (reasonable = 2 words/ second)]]], and [[[the submissionCount, the timeTaken (in milliseconds), and the charRatio (lower is better on all counts)]]] for each question. For charRatio, less than 1 means mostly spoken.  More than 1 means mostly typed.  Users should aim for mostly spoken (very low charRatio value i.e.: 0.1) for high confidence.  Then, give a score from 1 (low) to 100 (High) on the user's capacity to answer the question based on the analysis of the answers and the confidence. The score should reflect how well the user meets the criteria in their response but should refer only to the answer and not the measures (the submissionCount, the timeTaken, and the charRatio).  If the confidence measures appear low, say something like, `confidence for this question appears low`and something appropriate for other middle and higher values of confidence (high confidence is best). The answer must be returned in the following format: '\nQuestion [Question Number]:\n[Insert Question Here]\nUser Response to question:\n[User's answers to question]\nSubmissions:\n[User's response submissionCount for question]\nResponse Time:\n[User's timeTaken for question]\ncharRatio:\n[User's charRatio for question]\nResponse Analysis:\n[OpenAI Response]\nScore:\n[Assessed Score for the question]'.",
         },
         {
           role: "user",
