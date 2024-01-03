@@ -5,7 +5,8 @@ const cors = require("cors");
 const axios = require("axios");
 const app = express();
 const nodemailer = require("nodemailer");
-
+const Stripe = require('stripe');
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 // Initialize the OpenAI API configuration
 const openAI = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -13,6 +14,34 @@ const openAI = new OpenAI({
 
 app.use(cors());
 app.use(express.json());
+
+app.post('/api/create-checkout-session', async (req, res) => {
+  try {
+    const { quantity } = req.body;
+
+    // Ensure quantity is a positive number
+    if (!quantity || quantity <= 0) {
+      return res.status(400).json({ error: "Invalid quantity" });
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [{
+        price: process.env.Test_Token_Price, // Replace with your valid Stripe Price ID
+        quantity: quantity,
+      }],
+      mode: 'payment',
+      success_url: Success_URL,
+      cancel_url: Failure_URL,
+    });
+
+    res.json({ sessionId: session.id });
+  } catch (error) {
+    console.error('Error in create-checkout-session:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 app.post("/api/send-email", async (req, res) => {
   let { name, email, message } = req.body;
