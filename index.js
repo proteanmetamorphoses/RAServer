@@ -5,17 +5,95 @@ const cors = require("cors");
 const axios = require("axios");
 const app = express();
 const nodemailer = require("nodemailer");
-const Stripe = require('stripe');
+const Stripe = require("stripe");
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 // Initialize the OpenAI API configuration
 const openAI = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+let paymentDetails = {};
+let tempReceiptUrls = {};
 
+const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 app.use(cors());
+
+
+function reformatData(data) {
+  // Create a new object to hold the reformatted data
+  let reformattedData = {};
+
+  // Iterate through each key in the data
+  for (let key in data) {
+      // Check if the key is actually part of the data object
+      if (data.hasOwnProperty(key)) {
+          // Get the current item
+          let currentItem = data[key];
+
+          // Create a new object for this payment_intent
+          reformattedData[key] = {
+              id: currentItem.id
+          };
+
+          // Add the receipt_url if it exists
+          if (currentItem.receipt_url) {
+              reformattedData[key].receipt_url = currentItem.receipt_url;
+          }
+      }
+  }
+
+  return reformattedData;
+}
+
+app.post('/webhook', express.raw({type: 'application/json'}), (request, response) => {
+  const sig = request.headers['stripe-signature'];
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
+  } catch (err) {
+    console.error(`Webhook Error: ${err.message}`);
+    return response.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  if (event.type === 'charge.succeeded') {
+    const charge = event.data.object;
+    // Temporarily store the receipt_url using the payment_intent as the key
+    tempReceiptUrls[charge.payment_intent] = charge.receipt_url;
+  } else if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+    // Store the receipt_url using session_id as the key
+    const receiptUrl = tempReceiptUrls[session.payment_intent];
+    if (receiptUrl) {
+      paymentDetails[session.id] = receiptUrl;
+      delete tempReceiptUrls[session.payment_intent]; // Clean up temp storage
+    }
+  }
+
+  response.status(200).send();
+});
+
+
+function printPaymentDetails() {
+  console.log("Current Payment Details:", paymentDetails);
+}
+
+setInterval(printPaymentDetails, 1000);
+
+
 app.use(express.json());
 
-app.post('/api/create-checkout-session', async (req, res) => {
+app.post('/api/payment-status', (req, res) => {
+  const sessionId = req.body.sessionId;
+  
+  if (paymentDetails[sessionId]) {
+    res.json({ receipt_url: paymentDetails[sessionId] });
+    delete paymentDetails[sessionId]; // Remove entry after sending receipt URL
+  } else {
+    res.json({ status: 'pending' });
+  }
+});
+
+app.post("/api/create-checkout-session", async (req, res) => {
   try {
     const { quantity } = req.body;
 
@@ -25,32 +103,34 @@ app.post('/api/create-checkout-session', async (req, res) => {
     }
 
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [{
-        price: process.env.Test_Token_Price, // Replace with your valid Stripe Price ID
-        quantity: quantity,
-      }],
-      mode: 'payment',
-      success_url: process.env.Success_URL,
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price: process.env.Test_Token_Price, // Replace with your valid Stripe Price ID
+          quantity: quantity,
+        },
+      ],
+      mode: "payment",
+      success_url: `${process.env.Success_URL}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: process.env.Failure_URL,
     });
 
     res.json({ sessionId: session.id });
+    console.log("Session ID: ", session.id);
   } catch (error) {
-    console.error('Error in create-checkout-session:', error);
+    console.error("Error in create-checkout-session:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
 
 app.post("/api/send-email", async (req, res) => {
   let { name, email, message } = req.body;
   // Set up Nodemailer transport
   const transporter = nodemailer.createTransport({
-    service: SrVc, 
+    service: SrVc,
     auth: {
       user: process.env.userEmail,
-      pass: process.env.userPass, 
+      pass: process.env.userPass,
     },
   });
 
